@@ -1,0 +1,190 @@
+body {
+  background: #f5f7fb;
+  font-family: "Poppins", sans-serif;
+}
+
+.dashboard-container {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* Sidebar */
+
+.sidebar {
+  width: 260px;
+  background: linear-gradient(180deg, #1e1b4b, #312e81);
+  color: white;
+  padding: 25px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.logo {
+  font-size: 28px;
+  font-weight: bold;
+  margin-bottom: 40px;
+}
+
+.menu {
+  list-style: none;
+  padding: 0;
+}
+
+.menu li {
+  margin-bottom: 18px;
+}
+
+.menu li a {
+  color: #d1d5db;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 12px;
+  transition: 0.3s;
+}
+
+.menu li a:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+/* Main */
+
+.main-content {
+  flex: 1;
+  padding: 25px;
+}
+
+/* Topbar */
+
+.topbar {
+  background: white;
+  border-radius: 18px;
+  padding: 18px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #f3f4f6;
+  padding: 10px 15px;
+  border-radius: 12px;
+  width: 320px;
+}
+
+.search-box input {
+  border: none;
+  background: transparent;
+  outline: none;
+  width: 100%;
+}
+
+.top-icons {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.profile-img {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+}
+
+/* Cards */
+
+.modern-card {
+  background: white;
+  padding: 24px;
+  border-radius: 20px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+  transition: 0.3s;
+}
+
+.modern-card:hover {
+  transform: translateY(-5px);
+}
+
+.modern-card h6 {
+  margin-top: 15px;
+  color: gray;
+}
+
+.modern-card h2 {
+  font-weight: bold;
+}
+
+/* Charts */
+
+.chart-card {
+  background: white;
+  padding: 25px;
+  border-radius: 20px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+}
+
+/* Table */
+
+table thead tr {
+  background: #f3f4f6;
+}
+
+table th {
+  padding: 15px !important;
+}
+
+table td {
+  padding: 15px !important;
+}
+
+/* Responsive */
+
+@media(max-width: 992px) {
+
+  .sidebar {
+    width: 90px;
+  }
+
+  .logo {
+    font-size: 18px;
+  }
+
+  .menu li a span {
+    display: none;
+  }
+
+  .search-box {
+    width: 180px;
+  }
+
+}
+
+@media(max-width: 768px) {
+
+  .dashboard-container {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+  }
+
+  .topbar {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .search-box {
+    width: 100%;
+  }
+
+}

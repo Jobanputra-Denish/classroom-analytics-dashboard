@@ -1,0 +1,71 @@
+/* Update these hex codes to match your EXACT login page colors */
+:root {
+  --primary-color: #6d28d9;       /* Main primary color (e.g., Deep Purple / Indigo) */
+  --primary-hover: #5b21b6;       /* Darker shade for buttons on hover */
+  --primary-light: #f3e8ff;       /* Soft background tint for active tabs/cards */
+  --primary-border: #ddd6fe;      /* Subtle border color */
+  --text-dark: #1e1b4b;           /* Dark text color */
+  --text-muted: #6b7280;          /* Muted text color */
+  --card-bg: #ffffff;             /* Background for cards */
+  --body-bg: #f8fafc;             /* Overall page background */
+}
+
+/* Custom styling using login variables */
+.theme-settings-container {
+  background-color: var(--body-bg);
+  min-height: 100vh;
+}
+
+.theme-card {
+  background-color: var(--card-bg);
+  border: 1px solid var(--primary-border) !important;
+  border-radius: 12px;
+}
+
+.theme-header {
+  background-color: var(--primary-color) !important;
+  color: #ffffff;
+  border-top-left-radius: 12px !important;
+  border-top-right-radius: 12px !important;
+}
+
+/* Tab Navigation Styling */
+.theme-nav-group .list-group-item {
+  color: var(--text-dark);
+  border: 1px solid var(--primary-border);
+  background-color: var(--card-bg);
+  transition: all 0.2s ease-in-out;
+}
+
+.theme-nav-group .list-group-item:hover {
+  background-color: var(--primary-light);
+  color: var(--primary-color);
+}
+
+.theme-nav-group .list-group-item.active {
+  background-color: var(--primary-color) !important;
+  border-color: var(--primary-color) !important;
+  color: #ffffff !important;
+}
+
+/* Buttons & Inputs */
+.theme-btn-primary {
+  background-color: var(--primary-color) !important;
+  border-color: var(--primary-color) !important;
+  color: #ffffff !important;
+}
+
+.theme-btn-primary:hover {
+  background-color: var(--primary-hover) !important;
+  border-color: var(--primary-hover) !important;
+}
+
+.form-control:focus, .form-select:focus {
+  border-color: var(--primary-color) !important;
+  box-shadow: 0 0 0 0.25rem rgba(109, 40, 217, 0.2) !important;
+}
+
+.form-check-input:checked {
+  background-color: var(--primary-color) !important;
+  border-color: var(--primary-color) !important;
+}
