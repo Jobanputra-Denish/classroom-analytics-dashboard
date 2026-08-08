@@ -79,7 +79,7 @@ const ViewSubjects = ({ onNavigateToAdd }) => {
   const fetchSubjects = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await api.get("/subjects");
+      const res = await api.get("/subjects", getAuthHeaders());
       setSubjects(res.data);
     } catch (error) {
       console.error("Error loading subjects:", error);
