@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { Container, Row, Col, Card, Table, Badge, InputGroup, Form, Button, Dropdown, OverlayTrigger, Tooltip } from "react-bootstrap";
-import { Search, Pencil, Trash2, Users, UserCheck, SlidersHorizontal, ArrowUpDown, ChevronLeft, ChevronRight, UserPlus, Filter } from "lucide-react";
+import { Search, Pencil, Trash2, Users, UserCheck, ArrowUpDown, ChevronLeft, ChevronRight, UserPlus, Filter } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 // Import centralized API calls
 import { getStudents, deleteStudent } from "../../api/studentApi";
