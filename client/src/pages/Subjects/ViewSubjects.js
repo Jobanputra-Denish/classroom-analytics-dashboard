@@ -33,7 +33,7 @@ import {
   Award,
 } from "lucide-react";
 import "../Setings/SettingsTheme.css";
-import api from "../../api/axios";
+// import api from "../../api/axios";
 
 
 
