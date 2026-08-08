@@ -79,7 +79,7 @@ const ViewSubjects = ({ onNavigateToAdd }) => {
   const fetchSubjects = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await api.get("/subjects", getAuthHeaders());
+      const res = await api.get("/subjects");
       setSubjects(res.data);
     } catch (error) {
       console.error("Error loading subjects:", error);
@@ -87,7 +87,7 @@ const ViewSubjects = ({ onNavigateToAdd }) => {
     } finally {
       setLoading(false);
     }
-  }, [getAuthHeaders]);
+  },);
 
   useEffect(() => {
     fetchSubjects();
