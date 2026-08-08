@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useMemo, useCallback } from "react";
-import axios from "axios";
 import { Container, Row, Col, Card, Table, Badge, InputGroup, Form, Button, Dropdown, OverlayTrigger, Tooltip } from "react-bootstrap";
 import { Search, Pencil, Trash2, Users, UserCheck, SlidersHorizontal, ArrowUpDown, ChevronLeft, ChevronRight, UserPlus, Filter } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+// Import centralized API calls
+import { getStudents, deleteStudent } from "../api/studentApi";
 import "../Setings/SettingsTheme.css"; // Uses your global theme tokens
 
 const ViewStudents = () => {
@@ -18,17 +19,17 @@ const ViewStudents = () => {
   const itemsPerPage = 10;
 
   const navigate = useNavigate();
-  const token = localStorage.getItem("token");
 
-  const getStudents = async () => {
+  // Unified fetch function using API service
+  const fetchStudents = async () => {
     setLoading(true);
     try {
-      const res = await axios.get("http://localhost:5000/api/students", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      // Use centralized API service
+      const res = await getStudents();
       setStudents(res.data);
     } catch (error) {
       console.error("Error fetching students:", error);
+      // Optional: Add global error handling here (e.g., redirect to login on 401)
     } finally {
       setLoading(false);
     }
@@ -37,13 +38,12 @@ const ViewStudents = () => {
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this student record?")) return;
     try {
-      await axios.delete(`http://localhost:5000/api/students/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      getStudents();
+      // Use centralized API service
+      await deleteStudent(id);
+      fetchStudents(); // Refresh list after deletion
     } catch (error) {
       console.error(error);
-      alert("Delete Failed");
+      alert(error.response?.data?.message || "Delete Failed");
     }
   };
 
@@ -52,7 +52,7 @@ const ViewStudents = () => {
   }, [navigate]);
 
   useEffect(() => {
-    getStudents();
+    fetchStudents();
   }, []);
 
   // ANALYTICAL STATS

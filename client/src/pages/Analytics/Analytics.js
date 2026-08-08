@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
-import axios from "axios";
 import { Container, Row, Col, Card, Form, Button, InputGroup, Table, Badge, ProgressBar } from "react-bootstrap";
 import { BarChart3, User, CalendarCheck, Award, BookOpen, Search, Sparkles, RefreshCw } from "lucide-react";
+import { getStudents, getStudentAnalytics } from "./analyticsApi"; // Import API functions
 import "../Setings/SettingsTheme.css"; // Uses global theme CSS variables
 
 const Analytics = () => {
@@ -11,16 +11,12 @@ const Analytics = () => {
   const [loadingStudents, setLoadingStudents] = useState(false);
   const [loadingAnalytics, setLoadingAnalytics] = useState(false);
 
-  const token = localStorage.getItem("token");
-
   // Load Students list on mount
   useEffect(() => {
     const fetchStudents = async () => {
       setLoadingStudents(true);
       try {
-        const res = await axios.get("http://localhost:5000/api/students", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await getStudents();
         setStudents(res.data);
       } catch (err) {
         console.error("Error loading students:", err);
@@ -30,7 +26,7 @@ const Analytics = () => {
     };
 
     fetchStudents();
-  }, [token]);
+  }, []);
 
   // Load Student Specific Analytics
   const fetchAnalytics = useCallback(async () => {
@@ -41,9 +37,7 @@ const Analytics = () => {
 
     setLoadingAnalytics(true);
     try {
-      const res = await axios.get(`http://localhost:5000/api/analytics/${selectedStudent}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await getStudentAnalytics(selectedStudent);
       setAnalytics(res.data);
     } catch (err) {
       console.error("Error fetching analytics:", err);
@@ -51,7 +45,7 @@ const Analytics = () => {
     } finally {
       setLoadingAnalytics(false);
     }
-  }, [selectedStudent, token]);
+  }, [selectedStudent]);
 
   return (
     <div className="dashboard-content-area theme-settings-container">

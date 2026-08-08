@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useMemo } from "react";
-import axios from "axios";
 import { Container, Row, Col, Card, Table, Badge, InputGroup, Form, Button, Nav } from "react-bootstrap";
-import { Search, Filter, BookOpen, Award, GraduationCap, BarChart2, Plus, Percent, FolderX } from "lucide-react";
+import { Search, Filter, BookOpen, Award, BarChart2, Plus, Percent, FolderX } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import api from "../api";
 import "../Setings/SettingsTheme.css"; // Uses your global theme tokens
 
 const ViewMarks = () => {
@@ -13,7 +13,6 @@ const ViewMarks = () => {
   const [activeSubjectTab, setActiveSubjectTab] = useState("ALL");
 
   const navigate = useNavigate();
-  const token = localStorage.getItem("token");
 
   useEffect(() => {
     fetchMarks();
@@ -22,9 +21,7 @@ const ViewMarks = () => {
   const fetchMarks = async () => {
     try {
       setLoading(true);
-      const res = await axios.get("http://localhost:5000/api/marks", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await api.get("/marks");
       setMarks(res.data);
     } catch (error) {
       console.error("Error fetching marks:", error);

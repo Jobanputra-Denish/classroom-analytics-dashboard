@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
 import {
   Container,
   Row,
@@ -18,6 +17,7 @@ import {
   FileEarmarkBarGraphFill,
 } from "react-bootstrap-icons";
 import { useNavigate } from "react-router-dom";
+import { login } from "./authApi";
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -61,10 +61,8 @@ const Login = () => {
     try {
       setLoading(true);
 
-      const res = await axios.post(
-        "http://localhost:5000/api/auth/login",
-        formData
-      );
+      // USING AUTHAPI INSTEAD OF LOCALHOST URL
+      const res = await login(formData);
 
       // SAVE TOKEN
       localStorage.setItem("token", res.data.token);

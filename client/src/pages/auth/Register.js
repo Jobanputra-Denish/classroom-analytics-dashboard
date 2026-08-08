@@ -1,8 +1,8 @@
 import React, { useState } from "react";
-import axios from "axios";
-import { Container, Row, Col, Card, Form, Button, Alert, InputGroup, } from "react-bootstrap";
+import { Container, Row, Col, Card, Form, Button, Alert, InputGroup } from "react-bootstrap";
 import { PersonFill, EnvelopeFill, LockFill, ShieldLockFill, FileBarGraphFill, ClipboardCheckFill, BarChartFill } from "react-bootstrap-icons";
 import { useNavigate } from "react-router-dom";
+import { register } from "./authApi";
 
 const Register = () => {
 
@@ -75,15 +75,12 @@ const Register = () => {
 
       setLoading(true);
 
-      const res = await axios.post(
-        "http://localhost:5000/api/auth/register",
-        formData
-      );
+      // USING AUTHAPI INSTEAD OF LOCALHOST URL
+      const res = await register(formData);
 
-      localStorage.setItem(
-        "token",
-        res.data.token
-      );
+      if (res.data.token) {
+        localStorage.setItem("token", res.data.token);
+      }
 
       setMessage("Registration Successful");
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import axios from "axios";
 import {
   Container,
@@ -13,6 +13,8 @@ import {
   Modal,
   Spinner,
   ProgressBar,
+  Alert,
+  Pagination,
 } from "react-bootstrap";
 import {
   BookOpen,
@@ -32,17 +34,26 @@ import {
 } from "lucide-react";
 import "../Setings/SettingsTheme.css";
 
+const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
+
 const ViewSubjects = ({ onNavigateToAdd }) => {
   const [subjects, setSubjects] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedSemester, setSelectedSemester] = useState("ALL");
 
-  // State for View Details Modal
+  // Notification state
+  const [feedback, setFeedback] = useState({ type: "", message: "" });
+
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
+
+  // View Details Modal State
   const [selectedSubject, setSelectedSubject] = useState(null);
   const [showViewModal, setShowViewModal] = useState(false);
 
-  // State for Edit Subject Modal
+  // Edit Subject Modal State
   const [showEditModal, setShowEditModal] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [editFormData, setEditFormData] = useState({
@@ -57,24 +68,38 @@ const ViewSubjects = ({ onNavigateToAdd }) => {
 
   const token = localStorage.getItem("token");
 
-  // 1. Fetch all subjects
+  const getAuthHeaders = useCallback(() => ({
+    headers: { Authorization: `Bearer ${token}` },
+  }), [token]);
+
+  // Helper for notifications
+  const notify = (type, message) => {
+    setFeedback({ type, message });
+    setTimeout(() => setFeedback({ type: "", message: "" }), 5000);
+  };
+
+  // 1. Fetch Subjects
   const fetchSubjects = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await axios.get("http://localhost:5000/api/subjects", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await axios.get(`${API_BASE_URL}/api/subjects`, getAuthHeaders());
       setSubjects(res.data);
     } catch (error) {
       console.error("Error loading subjects:", error);
+      notify("danger", error.response?.data?.message || "Failed to load subject records.");
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [getAuthHeaders]);
 
   useEffect(() => {
     fetchSubjects();
   }, [fetchSubjects]);
+
+  // Reset pagination when filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedSemester]);
 
   // 2. Open View Modal
   const handleOpenViewModal = (subject) => {
@@ -82,7 +107,7 @@ const ViewSubjects = ({ onNavigateToAdd }) => {
     setShowViewModal(true);
   };
 
-  // 3. Open Edit Modal & Populate Form
+  // 3. Open Edit Modal
   const handleOpenEditModal = (subject) => {
     const defaultModules = subject.marksModules?.length
       ? subject.marksModules
@@ -99,58 +124,65 @@ const ViewSubjects = ({ onNavigateToAdd }) => {
       className: subject.className || "",
       semester: subject.semester || "",
       credits: subject.credits || "",
-      marksModules: defaultModules,
+      marksModules: defaultModules.map((m) => ({ ...m })),
     });
     setShowEditModal(true);
   };
 
   // 4. Handle Edit Form Inputs
   const handleEditChange = (e) => {
-    setEditFormData({
-      ...editFormData,
-      [e.target.name]: e.target.value,
-    });
+    const { name, value } = e.target;
+    setEditFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
-  // 5. Handle Marks Module Inputs inside Edit Form
+  // 5. Immutable Handler for Marks Modules
   const handleModuleChange = (index, field, value) => {
-    const updatedModules = [...editFormData.marksModules];
-    updatedModules[index][field] = value;
-    setEditFormData({ ...editFormData, marksModules: updatedModules });
+    setEditFormData((prev) => {
+      const updatedModules = prev.marksModules.map((mod, i) => {
+        if (i === index) {
+          return { ...mod, [field]: field === "maxMarks" ? Number(value) || 0 : value };
+        }
+        return mod;
+      });
+      return { ...prev, marksModules: updatedModules };
+    });
   };
 
   const addModuleField = () => {
-    setEditFormData({
-      ...editFormData,
-      marksModules: [...editFormData.marksModules, { name: "", maxMarks: 0 }],
-    });
+    setEditFormData((prev) => ({
+      ...prev,
+      marksModules: [...prev.marksModules, { name: "", maxMarks: 0 }],
+    }));
   };
 
   const removeModuleField = (index) => {
-    const updatedModules = editFormData.marksModules.filter((_, i) => i !== index);
-    setEditFormData({ ...editFormData, marksModules: updatedModules });
+    setEditFormData((prev) => ({
+      ...prev,
+      marksModules: prev.marksModules.filter((_, i) => i !== index),
+    }));
   };
 
-  // 6. Submit Update (PUT Request)
+  // 6. Submit Update
   const handleUpdateSubmit = async (e) => {
     e.preventDefault();
     setUpdating(true);
 
     try {
       await axios.put(
-        `http://localhost:5000/api/subjects/${editFormData._id}`,
+        `${API_BASE_URL}/api/subjects/${editFormData._id}`,
         editFormData,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        getAuthHeaders()
       );
 
       setShowEditModal(false);
-      fetchSubjects(); // Refresh subject list
-      alert("Subject updated successfully!");
+      fetchSubjects();
+      notify("success", "Subject details updated successfully!");
     } catch (error) {
       console.error("Error updating subject:", error);
-      alert(error.response?.data?.message || "Failed to update subject.");
+      notify("danger", error.response?.data?.message || "Failed to update subject.");
     } finally {
       setUpdating(false);
     }
@@ -161,32 +193,53 @@ const ViewSubjects = ({ onNavigateToAdd }) => {
     if (!window.confirm("Are you sure you want to delete this subject?")) return;
 
     try {
-      await axios.delete(`http://localhost:5000/api/subjects/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await axios.delete(`${API_BASE_URL}/api/subjects/${id}`, getAuthHeaders());
       fetchSubjects();
+      notify("success", "Subject deleted successfully!");
     } catch (error) {
       console.error("Error deleting subject:", error);
-      alert(error.response?.data?.message || "Failed to delete subject.");
+      notify("danger", error.response?.data?.message || "Failed to delete subject.");
     }
   };
 
-  // Filter subjects based on search & semester selector
-  const filteredSubjects = subjects.filter((subj) => {
-    const matchesSearch =
-      subj.subjectName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      subj.subjectCode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      subj.className?.toLowerCase().includes(searchTerm.toLowerCase());
+  // Filtered Subjects Computation
+  const filteredSubjects = useMemo(() => {
+    const query = searchTerm.toLowerCase().trim();
+    return subjects.filter((subj) => {
+      const matchesSearch =
+        subj.subjectName?.toLowerCase().includes(query) ||
+        subj.subjectCode?.toLowerCase().includes(query) ||
+        subj.className?.toLowerCase().includes(query);
 
-    const matchesSemester =
-      selectedSemester === "ALL" || String(subj.semester) === selectedSemester;
+      const matchesSemester =
+        selectedSemester === "ALL" || String(subj.semester) === selectedSemester;
 
-    return matchesSearch && matchesSemester;
-  });
+      return matchesSearch && matchesSemester;
+    });
+  }, [subjects, searchTerm, selectedSemester]);
+
+  // Paginated View Slice
+  const totalPages = Math.ceil(filteredSubjects.length / itemsPerPage);
+  const currentPaginatedSubjects = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredSubjects.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredSubjects, currentPage, itemsPerPage]);
 
   return (
     <div className="dashboard-content-area theme-settings-container">
       <Container fluid className="px-4 py-4">
+        {/* ALERT NOTIFICATION BAR */}
+        {feedback.message && (
+          <Alert
+            variant={feedback.type}
+            onClose={() => setFeedback({ type: "", message: "" })}
+            dismissible
+            className="mb-4 shadow-sm fs-7"
+          >
+            {feedback.message}
+          </Alert>
+        )}
+
         {/* HEADER TOOLBAR */}
         <div className="d-flex justify-content-between align-items-center flex-wrap mb-4 gap-3">
           <div>
@@ -247,6 +300,7 @@ const ViewSubjects = ({ onNavigateToAdd }) => {
                   variant="outline-secondary"
                   className="w-100 fs-7 d-flex align-items-center justify-content-center gap-2 py-2"
                   onClick={fetchSubjects}
+                  disabled={loading}
                 >
                   <RefreshCw size={15} className={loading ? "spin-icon" : ""} /> Refresh
                 </Button>
@@ -255,7 +309,7 @@ const ViewSubjects = ({ onNavigateToAdd }) => {
           </Card.Body>
         </Card>
 
-        {/* FULL WIDTH SUBJECTS TABLE */}
+        {/* SUBJECTS DATA TABLE */}
         <Card className="theme-card shadow-sm runtime-panel-card overflow-hidden">
           <Card.Header className="theme-header py-3 d-flex align-items-center justify-content-between">
             <div className="d-flex align-items-center gap-2">
@@ -279,7 +333,9 @@ const ViewSubjects = ({ onNavigateToAdd }) => {
                     <th>Semester</th>
                     <th>Credits</th>
                     <th>Marks Scheme</th>
-                    <th style={{ width: "140px" }} className="text-end pe-4">Actions</th>
+                    <th style={{ width: "140px" }} className="text-end pe-4">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -290,8 +346,8 @@ const ViewSubjects = ({ onNavigateToAdd }) => {
                         <span className="ms-2 text-muted fs-7">Loading subject records...</span>
                       </td>
                     </tr>
-                  ) : filteredSubjects.length > 0 ? (
-                    filteredSubjects.map((subject, index) => {
+                  ) : currentPaginatedSubjects.length > 0 ? (
+                    currentPaginatedSubjects.map((subject, index) => {
                       const modules = subject.marksModules?.length
                         ? subject.marksModules
                         : [
@@ -299,11 +355,15 @@ const ViewSubjects = ({ onNavigateToAdd }) => {
                             { name: "Mid-Term", maxMarks: 30 },
                             { name: "End-Term", maxMarks: 50 },
                           ];
-                      const totalMarks = modules.reduce((sum, m) => sum + (Number(m.maxMarks) || 0), 0);
+                      const totalMarks = modules.reduce(
+                        (sum, m) => sum + (Number(m.maxMarks) || 0),
+                        0
+                      );
+                      const displayIndex = (currentPage - 1) * itemsPerPage + index + 1;
 
                       return (
                         <tr key={subject._id || index} className="datagrid-row-transition">
-                          <td className="text-muted fs-7 ps-3">{index + 1}</td>
+                          <td className="text-muted fs-7 ps-3">{displayIndex}</td>
                           <td className="fw-semibold fs-7" style={{ color: "var(--text-dark)" }}>
                             {subject.subjectName}
                           </td>
@@ -328,7 +388,9 @@ const ViewSubjects = ({ onNavigateToAdd }) => {
                               variant="light"
                               size="sm"
                               className="border fs-8 fw-medium text-primary d-inline-flex align-items-center gap-1 py-1 px-2"
-                              onClick={() => handleOpenViewModal({ ...subject, marksModules: modules })}
+                              onClick={() =>
+                                handleOpenViewModal({ ...subject, marksModules: modules })
+                              }
                             >
                               <BarChart2 size={13} /> {modules.length} Modules ({totalMarks} Marks)
                             </Button>
@@ -340,7 +402,9 @@ const ViewSubjects = ({ onNavigateToAdd }) => {
                                 size="sm"
                                 className="btn-icon p-1"
                                 title="View Details"
-                                onClick={() => handleOpenViewModal({ ...subject, marksModules: modules })}
+                                onClick={() =>
+                                  handleOpenViewModal({ ...subject, marksModules: modules })
+                                }
                               >
                                 <Eye size={14} />
                               </Button>
@@ -370,7 +434,7 @@ const ViewSubjects = ({ onNavigateToAdd }) => {
                   ) : (
                     <tr>
                       <td colSpan="8" className="text-center text-muted py-5 fs-7">
-                        No subject records found.
+                        No subject records found matching your criteria.
                       </td>
                     </tr>
                   )}
@@ -378,10 +442,38 @@ const ViewSubjects = ({ onNavigateToAdd }) => {
               </Table>
             </div>
           </Card.Body>
+
+          {/* TABLE PAGINATION FOOTER */}
+          {totalPages > 1 && (
+            <Card.Footer className="bg-white d-flex justify-content-between align-items-center py-3">
+              <span className="text-muted fs-8">
+                Page {currentPage} of {totalPages}
+              </span>
+              <Pagination size="sm" className="mb-0">
+                <Pagination.Prev
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                />
+                {[...Array(totalPages)].map((_, idx) => (
+                  <Pagination.Item
+                    key={idx + 1}
+                    active={idx + 1 === currentPage}
+                    onClick={() => setCurrentPage(idx + 1)}
+                  >
+                    {idx + 1}
+                  </Pagination.Item>
+                ))}
+                <Pagination.Next
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+                />
+              </Pagination>
+            </Card.Footer>
+          )}
         </Card>
       </Container>
 
-      {/* VIEW SUBJECT DETAILS & MARKS MODAL */}
+      {/* VIEW SUBJECT DETAILS MODAL */}
       <Modal show={showViewModal} onHide={() => setShowViewModal(false)} centered size="lg">
         <Modal.Header closeButton className="theme-header text-white">
           <Modal.Title className="fs-6 fw-bold d-flex align-items-center gap-2">
@@ -424,8 +516,12 @@ const ViewSubjects = ({ onNavigateToAdd }) => {
                 </thead>
                 <tbody>
                   {selectedSubject.marksModules?.map((mod, i) => {
-                    const total = selectedSubject.marksModules.reduce((s, m) => s + Number(m.maxMarks || 0), 0);
-                    const weightage = total > 0 ? Math.round((Number(mod.maxMarks) / total) * 100) : 0;
+                    const total = selectedSubject.marksModules.reduce(
+                      (s, m) => s + Number(m.maxMarks || 0),
+                      0
+                    );
+                    const weightage =
+                      total > 0 ? Math.round((Number(mod.maxMarks) / total) * 100) : 0;
 
                     return (
                       <tr key={i}>
@@ -465,7 +561,9 @@ const ViewSubjects = ({ onNavigateToAdd }) => {
               <Col md={6}>
                 <Form.Label className="fs-7 fw-semibold text-secondary">Subject Name</Form.Label>
                 <InputGroup className="input-group-custom">
-                  <InputGroup.Text><BookOpen size={16} className="text-muted" /></InputGroup.Text>
+                  <InputGroup.Text>
+                    <BookOpen size={16} className="text-muted" />
+                  </InputGroup.Text>
                   <Form.Control
                     type="text"
                     name="subjectName"
@@ -480,7 +578,9 @@ const ViewSubjects = ({ onNavigateToAdd }) => {
               <Col md={6}>
                 <Form.Label className="fs-7 fw-semibold text-secondary">Subject Code</Form.Label>
                 <InputGroup className="input-group-custom">
-                  <InputGroup.Text><Hash size={16} className="text-muted" /></InputGroup.Text>
+                  <InputGroup.Text>
+                    <Hash size={16} className="text-muted" />
+                  </InputGroup.Text>
                   <Form.Control
                     type="text"
                     name="subjectCode"
@@ -495,7 +595,9 @@ const ViewSubjects = ({ onNavigateToAdd }) => {
               <Col md={6}>
                 <Form.Label className="fs-7 fw-semibold text-secondary">Class Name</Form.Label>
                 <InputGroup className="input-group-custom">
-                  <InputGroup.Text><GraduationCap size={16} className="text-muted" /></InputGroup.Text>
+                  <InputGroup.Text>
+                    <GraduationCap size={16} className="text-muted" />
+                  </InputGroup.Text>
                   <Form.Control
                     type="text"
                     name="className"
@@ -510,7 +612,9 @@ const ViewSubjects = ({ onNavigateToAdd }) => {
               <Col md={3}>
                 <Form.Label className="fs-7 fw-semibold text-secondary">Semester</Form.Label>
                 <InputGroup className="input-group-custom">
-                  <InputGroup.Text><Layers size={16} className="text-muted" /></InputGroup.Text>
+                  <InputGroup.Text>
+                    <Layers size={16} className="text-muted" />
+                  </InputGroup.Text>
                   <Form.Control
                     type="number"
                     name="semester"
@@ -526,7 +630,9 @@ const ViewSubjects = ({ onNavigateToAdd }) => {
               <Col md={3}>
                 <Form.Label className="fs-7 fw-semibold text-secondary">Credits</Form.Label>
                 <InputGroup className="input-group-custom">
-                  <InputGroup.Text><Award size={16} className="text-muted" /></InputGroup.Text>
+                  <InputGroup.Text>
+                    <Award size={16} className="text-muted" />
+                  </InputGroup.Text>
                   <Form.Control
                     type="number"
                     name="credits"
@@ -540,7 +646,7 @@ const ViewSubjects = ({ onNavigateToAdd }) => {
               </Col>
             </Row>
 
-            {/* EDIT MARKS MODULES */}
+            {/* MARKS MODULES EDITOR */}
             <hr className="my-4" />
             <div className="d-flex justify-content-between align-items-center mb-3">
               <h6 className="fw-bold mb-0 fs-7 text-dark">Configure Marks Modules</h6>
@@ -610,7 +716,7 @@ const ViewSubjects = ({ onNavigateToAdd }) => {
         </Form>
       </Modal>
 
-      {/* STYLING */}
+      {/* STYLING OVERRIDES */}
       <style>{`
         .dashboard-content-area { color: var(--text-dark); }
         .fs-7 { font-size: 0.875rem !important; }

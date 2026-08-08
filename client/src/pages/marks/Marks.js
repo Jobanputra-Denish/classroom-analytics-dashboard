@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useCallback } from "react";
-import axios from "axios";
 import { Container, Row, Col, Card, Form, Button, InputGroup, Table, Badge, OverlayTrigger, Tooltip } from "react-bootstrap";
-import { Award, Pencil, Trash2, Plus, Save, RotateCcw, User, BookOpen, Calendar, Hash, ArrowRight, Percent } from "lucide-react";
+import { Award, Pencil, Trash2, Plus, Save, RotateCcw, User, BookOpen, Calendar, Hash, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import "../Setings/SettingsTheme.css"; // Uses your global theme tokens
+import api from "../api";
+import "../Setings/SettingsTheme.css";
 
 const Marks = () => {
   const [students, setStudents] = useState([]);
@@ -14,7 +14,6 @@ const Marks = () => {
   const [editId, setEditId] = useState(null);
 
   const navigate = useNavigate();
-  const token = localStorage.getItem("token");
 
   const [formData, setFormData] = useState({
     studentId: "",
@@ -26,9 +25,7 @@ const Marks = () => {
 
   const fetchStudents = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/students", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await api.get("/students");
       setStudents(res.data);
     } catch (error) {
       console.error("Error fetching students:", error);
@@ -37,9 +34,7 @@ const Marks = () => {
 
   const fetchSubjects = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/subjects", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await api.get("/subjects");
       setSubjects(res.data);
     } catch (error) {
       console.error("Error fetching subjects:", error);
@@ -49,9 +44,7 @@ const Marks = () => {
   const fetchMarks = async () => {
     try {
       setLoading(true);
-      const res = await axios.get("http://localhost:5000/api/marks", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await api.get("/marks");
       setMarks(res.data);
     } catch (error) {
       console.error("Error fetching marks:", error);
@@ -84,16 +77,19 @@ const Marks = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
+
+    const payload = {
+      ...formData,
+      obtainedMarks: Number(formData.obtainedMarks),
+      totalMarks: Number(formData.totalMarks),
+    };
+
     try {
       if (editId) {
-        await axios.put(`http://localhost:5000/api/marks/${editId}`, formData, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        await api.put(`/marks/${editId}`, payload);
         alert("Marks Record Updated Successfully");
       } else {
-        await axios.post("http://localhost:5000/api/marks", formData, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        await api.post("/marks", payload);
         alert("Marks Added Successfully");
       }
       resetForm();
@@ -112,20 +108,18 @@ const Marks = () => {
       subjectId: mark.subjectId?.subjectCode || "",
       obtainedMarks: mark.obtainedMarks,
       totalMarks: mark.totalMarks,
-      term: mark.term,
+      term: mark.term || "",
     });
   };
 
   const deleteMarks = async (id) => {
     if (!window.confirm("Are you sure you want to delete this mark record?")) return;
     try {
-      await axios.delete(`http://localhost:5000/api/marks/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await api.delete(`/marks/${id}`);
       fetchMarks();
     } catch (error) {
       console.error(error);
-      alert("Failed to delete record");
+      alert(error.response?.data?.message || "Failed to delete record");
     }
   };
 
@@ -221,7 +215,7 @@ const Marks = () => {
                 <Col md={12} className="pt-2">
                   <div className="d-flex justify-content-end gap-2">
                     <Button variant="light" onClick={resetForm} className="btn-action text-secondary border px-4">
-                      <RotateCcw size={16} className="me-1.5" /> Reset
+                      <RotateCcw size={16} className="me-1" /> Reset
                     </Button>
                     <Button type="submit" disabled={submitting} className="theme-btn-primary px-4 fw-medium d-flex align-items-center gap-2">
                       {editId ? <Save size={18} /> : <Plus size={18} />}
@@ -264,13 +258,13 @@ const Marks = () => {
                   <tbody>
                     {marks.length > 0 ? (
                       marks.map((mark, index) => {
-                        const pct = ((mark.obtainedMarks / mark.totalMarks) * 100).toFixed(1);
+                        const pct = mark.totalMarks ? ((mark.obtainedMarks / mark.totalMarks) * 100).toFixed(1) : "0.0";
                         return (
                           <tr key={mark._id} className="datagrid-row-transition">
                             <td className="text-muted fs-7 ps-3">{index + 1}</td>
                             <td>
                               <div className="fw-semibold fs-7" style={{ color: "var(--text-dark)" }}>
-                                {mark.studentId?.fullname || <span className="text-danger italic">Student Deleted</span>}
+                                {mark.studentId?.fullname || <span className="text-danger fst-italic">Student Deleted</span>}
                               </div>
                               <small className="text-muted fs-8">{mark.studentId?.StudentId || "N/A"}</small>
                             </td>
@@ -296,12 +290,12 @@ const Marks = () => {
                             <td className="text-end pe-3">
                               <div className="d-flex justify-content-end gap-1">
                                 <OverlayTrigger placement="top" overlay={<Tooltip>Edit Record</Tooltip>}>
-                                  <Button size="sm" variant="action-edit" onClick={() => editMarks(mark)} className="p-1.5 rounded-2">
+                                  <Button size="sm" variant="action-edit" onClick={() => editMarks(mark)} className="p-1 rounded-2">
                                     <Pencil size={14} />
                                   </Button>
                                 </OverlayTrigger>
                                 <OverlayTrigger placement="top" overlay={<Tooltip>Delete Entry</Tooltip>}>
-                                  <Button size="sm" variant="action-delete" onClick={() => deleteMarks(mark._id)} className="p-1.5 rounded-2">
+                                  <Button size="sm" variant="action-delete" onClick={() => deleteMarks(mark._id)} className="p-1 rounded-2">
                                     <Trash2 size={14} />
                                   </Button>
                                 </OverlayTrigger>
@@ -325,7 +319,6 @@ const Marks = () => {
         </Card>
       </Container>
 
-      {/* COMPACT STYLING RUNTIME OVERRIDES */}
       <style>{`
         .dashboard-content-area { color: var(--text-dark); }
         .fs-7 { font-size: 0.875rem !important; }
@@ -333,18 +326,15 @@ const Marks = () => {
         .tracking-tight { letter-spacing: -0.02em; }
         .runtime-panel-card { border-radius: 12px; }
 
-        /* INPUT FIELD FORMATTING */
         .input-group-custom .form-control, .input-group-custom .form-select { border-left: none; padding-top: 9px; padding-bottom: 9px; font-size: 0.875rem; border-color: var(--primary-border); border-top-right-radius: 8px !important; border-bottom-right-radius: 8px !important; }
         .input-group-custom .input-group-text { background-color: var(--card-bg); border-right: none; border-color: var(--primary-border); border-top-left-radius: 8px !important; border-bottom-left-radius: 8px !important; }
         .form-control:focus, .form-select:focus { border-color: var(--primary-color) !important; box-shadow: 0 0 0 2px rgba(109, 40, 217, 0.15) !important; }
 
-        /* DATAGRID TABLE */
         .custom-datagrid th { background-color: var(--primary-light); color: var(--text-dark); font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; padding: 14px 16px; border-top: none; border-bottom: 2px solid var(--primary-border); }
         .custom-datagrid td { padding: 14px 16px; border-bottom: 1px solid var(--primary-border); }
         .datagrid-row-transition { transition: background-color 0.15s ease; }
         .datagrid-row-transition:hover { background-color: var(--primary-light) !important; }
 
-        /* BADGES & BUTTONS */
         .badge-modern { padding: 6px 10px; font-weight: 500; font-size: 0.75rem; border-radius: 6px; }
         .badge-modern-info { background-color: #e0f2fe !important; color: #0369a1 !important; }
         .badge-modern-dark { background-color: #f1f5f9 !important; color: #334155 !important; }

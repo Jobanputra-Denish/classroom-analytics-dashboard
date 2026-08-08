@@ -1,7 +1,12 @@
 import React, { useEffect, useState, useMemo, useCallback } from "react";
-import axios from "axios";
 import { Container, Row, Col, Card, Form, Button, Table, Badge, InputGroup, OverlayTrigger, Tooltip, Dropdown } from "react-bootstrap";
 import { User, BookOpen, CalendarDays, CheckCircle2, XCircle, Search, Pencil, Trash2, SlidersHorizontal, ArrowUpDown, ChevronLeft, ChevronRight, FileDown, Layers, Percent } from "lucide-react";
+
+// Centralized API Service Imports
+import { getAttendance, markAttendance, updateAttendance, deleteAttendance } from "../api/attendanceApi";
+import { getStudents } from "../api/studentApi";
+import { getSubjects } from "../api/subjectApi";
+
 import "../Setings/SettingsTheme.css"; // Uses your global theme tokens
 
 const Attendance = () => {
@@ -27,8 +32,6 @@ const Attendance = () => {
     status: "",
   });
 
-  const token = localStorage.getItem("token");
-
   // VALUE CACHING LAYER (USECALLBACK & USEMEMO)
   const handleChange = useCallback((e) => {
     setFormData((prev) => ({
@@ -37,34 +40,28 @@ const Attendance = () => {
     }));
   }, []);
 
-  const getStudents = async () => {
+  const fetchStudents = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/students", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await getStudents();
       setStudents(res.data);
     } catch (error) {
       console.error("Failed fetching students:", error);
     }
   };
 
-  const getSubjects = async () => {
+  const fetchSubjects = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/subjects", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await getSubjects();
       setSubjects(res.data);
     } catch (error) {
       console.error("Failed fetching subjects:", error);
     }
   };
 
-  const getAttendance = async () => {
+  const fetchAttendance = async () => {
     setLoading(true);
     try {
-      const res = await axios.get("http://localhost:5000/api/attendance", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await getAttendance();
       setAttendance(res.data);
     } catch (error) {
       console.error("Failed fetching attendance:", error);
@@ -74,9 +71,9 @@ const Attendance = () => {
   };
 
   useEffect(() => {
-    getStudents();
-    getSubjects();
-    getAttendance();
+    fetchStudents();
+    fetchSubjects();
+    fetchAttendance();
   }, []);
 
   const resetForm = useCallback(() => {
@@ -93,18 +90,15 @@ const Attendance = () => {
     e.preventDefault();
     try {
       if (editId) {
-        await axios.put(
-          `http://localhost:5000/api/attendance/${editId}`,
-          { status: formData.status, date: formData.date },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-      } else {
-        await axios.post("http://localhost:5000/api/attendance", formData, {
-          headers: { Authorization: `Bearer ${token}` },
+        await updateAttendance(editId, {
+          status: formData.status,
+          date: formData.date,
         });
+      } else {
+        await markAttendance(formData);
       }
       resetForm();
-      getAttendance();
+      fetchAttendance();
     } catch (error) {
       alert(error.response?.data?.message || "An error occurred updating records.");
     }
@@ -123,10 +117,8 @@ const Attendance = () => {
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this attendance record?")) return;
     try {
-      await axios.delete(`http://localhost:5000/api/attendance/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      getAttendance();
+      await deleteAttendance(id);
+      fetchAttendance();
     } catch (error) {
       alert(error.response?.data?.message || "Unable to delete record.");
     }

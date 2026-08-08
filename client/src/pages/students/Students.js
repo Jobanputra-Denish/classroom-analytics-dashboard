@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useCallback } from "react";
-import axios from "axios";
 import { Container, Row, Col, Card, Form, Button, InputGroup, ListGroup, Badge } from "react-bootstrap";
 import { User, Mail, Phone, MapPin, Hash, Plus, CheckCircle2, Save, Sparkles, GraduationCap, ArrowRight, RotateCcw } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
-import "../Setings/SettingsTheme.css"; // Uses your global theme tokens
+import { getStudents, addStudent, updateStudent } from "../api/studentApi";
+import "../Setings/SettingsTheme.css";
 
 const Students = () => {
   const [students, setStudents] = useState([]);
@@ -25,13 +25,9 @@ const Students = () => {
     address: "",
   });
 
-  const token = localStorage.getItem("token");
-
-  const getStudents = async () => {
+  const fetchStudents = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/students", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await getStudents();
       setStudents(res.data);
     } catch (error) {
       console.error("Error fetching students:", error);
@@ -39,7 +35,7 @@ const Students = () => {
   };
 
   useEffect(() => {
-    getStudents();
+    fetchStudents();
 
     if (location.state && location.state.editStudent) {
       const student = location.state.editStudent;
@@ -82,14 +78,10 @@ const Students = () => {
     setLoading(true);
     try {
       if (editId) {
-        await axios.put(`http://localhost:5000/api/students/${editId}`, formData, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        await updateStudent(editId, formData);
         alert("Student Profile Updated Successfully");
       } else {
-        await axios.post("http://localhost:5000/api/students", formData, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        await addStudent(formData);
         alert("Student Enrolled Successfully");
       }
 
