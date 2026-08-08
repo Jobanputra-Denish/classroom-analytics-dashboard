@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import api from "../api/axios";
 import { GraduationCap, Users, ClipboardCheck, BookOpen, ArrowUpRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import {
@@ -51,10 +51,10 @@ const DashboardHome = () => {
         const headers = { Authorization: `Bearer ${token}` };
 
         const [studentsRes, subjectsRes, attendanceRes, marksRes] = await Promise.allSettled([
-          axios.get("http://localhost:5000/api/students", { headers }),
-          axios.get("http://localhost:5000/api/subjects", { headers }),
-          axios.get("http://localhost:5000/api/attendance", { headers }),
-          axios.get("http://localhost:5000/api/marks", { headers })
+          api.get("/students", { headers }),
+          api.get("/subjects", { headers }),
+          api.get("/attendance", { headers }),
+          api.get("/marks", { headers })
         ]);
 
         if (studentsRes.status === "fulfilled") {

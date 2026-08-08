@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { Container, Row, Col, Card, Form, Button, InputGroup, Table, Badge, ProgressBar } from "react-bootstrap";
 import { BarChart3, User, CalendarCheck, Award, BookOpen, Search, Sparkles, RefreshCw } from "lucide-react";
-import { getStudents, getStudentAnalytics } from "./analyticsApi"; // Import API functions
+import { getStudents, getStudentAnalytics } from "../../api/analyticsApi"; // Import API functions
 import "../Setings/SettingsTheme.css"; // Uses global theme CSS variables
 
 const Analytics = () => {

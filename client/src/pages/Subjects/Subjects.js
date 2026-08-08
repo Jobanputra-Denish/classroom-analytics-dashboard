@@ -1,17 +1,8 @@
 import React, { useState } from "react";
 import { Card, Form, Button, Row, Col, InputGroup, Spinner } from "react-bootstrap";
-import {
-  BookOpen,
-  Hash,
-  GraduationCap,
-  Layers,
-  Award,
-  FileText,
-  ArrowLeft,
-  Save,
-} from "lucide-react";
+import {  BookOpen,  Hash,  GraduationCap,  Layers,  Award,  FileText,  ArrowLeft,  Save,} from "lucide-react";
 
-import { createSubject } from "../api/subjectApi";
+import { createSubject } from "../../api/subjectApi";
 import "../Setings/SettingsTheme.css";
 
 const AddSubjectForm = ({ onBack, onSuccess }) => {

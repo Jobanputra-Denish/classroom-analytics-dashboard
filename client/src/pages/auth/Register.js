@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Container, Row, Col, Card, Form, Button, Alert, InputGroup } from "react-bootstrap";
 import { PersonFill, EnvelopeFill, LockFill, ShieldLockFill, FileBarGraphFill, ClipboardCheckFill, BarChartFill } from "react-bootstrap-icons";
 import { useNavigate } from "react-router-dom";
-import { register } from "./authApi";
+import { register } from "../../api/authApi";
 
 const Register = () => {
 

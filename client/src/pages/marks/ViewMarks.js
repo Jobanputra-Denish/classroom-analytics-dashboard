@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from "react";
 import { Container, Row, Col, Card, Table, Badge, InputGroup, Form, Button, Nav } from "react-bootstrap";
 import { Search, Filter, BookOpen, Award, BarChart2, Plus, Percent, FolderX } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import api from "../api";
+import api from "../../api/axios";
 import "../Setings/SettingsTheme.css"; // Uses your global theme tokens
 
 const ViewMarks = () => {

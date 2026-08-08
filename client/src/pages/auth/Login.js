@@ -17,7 +17,7 @@ import {
   FileEarmarkBarGraphFill,
 } from "react-bootstrap-icons";
 import { useNavigate } from "react-router-dom";
-import { login } from "./authApi";
+import { login } from "../../api/authApi";
 
 const Login = () => {
   const [formData, setFormData] = useState({

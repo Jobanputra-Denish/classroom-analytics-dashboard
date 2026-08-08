@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { Container, Row, Col, Card, Form, Button, InputGroup, ListGroup, Badge } from "react-bootstrap";
 import { User, Mail, Phone, MapPin, Hash, Plus, CheckCircle2, Save, Sparkles, GraduationCap, ArrowRight, RotateCcw } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { getStudents, addStudent, updateStudent } from "../api/studentApi";
+import { getStudents, addStudent, updateStudent } from "../../api/studentApi";
 import "../Setings/SettingsTheme.css";
 
 const Students = () => {

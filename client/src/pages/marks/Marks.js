@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { Container, Row, Col, Card, Form, Button, InputGroup, Table, Badge, OverlayTrigger, Tooltip } from "react-bootstrap";
 import { Award, Pencil, Trash2, Plus, Save, RotateCcw, User, BookOpen, Calendar, Hash, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import api from "../api";
+import api from "../../api/axios";
 import "../Setings/SettingsTheme.css";
 
 const Marks = () => {

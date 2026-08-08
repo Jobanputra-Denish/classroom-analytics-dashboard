@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
-import axios from "axios";
+import api from "../../api/axios";
 import {
   Container,
   Row,
@@ -33,8 +33,9 @@ import {
   Award,
 } from "lucide-react";
 import "../Setings/SettingsTheme.css";
+import api from "../../api/axios";
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
+
 
 const ViewSubjects = ({ onNavigateToAdd }) => {
   const [subjects, setSubjects] = useState([]);
@@ -66,11 +67,7 @@ const ViewSubjects = ({ onNavigateToAdd }) => {
     marksModules: [],
   });
 
-  const token = localStorage.getItem("token");
 
-  const getAuthHeaders = useCallback(() => ({
-    headers: { Authorization: `Bearer ${token}` },
-  }), [token]);
 
   // Helper for notifications
   const notify = (type, message) => {
@@ -82,7 +79,7 @@ const ViewSubjects = ({ onNavigateToAdd }) => {
   const fetchSubjects = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API_BASE_URL}/api/subjects`, getAuthHeaders());
+      const res = await api.get("/subjects");
       setSubjects(res.data);
     } catch (error) {
       console.error("Error loading subjects:", error);
@@ -112,10 +109,10 @@ const ViewSubjects = ({ onNavigateToAdd }) => {
     const defaultModules = subject.marksModules?.length
       ? subject.marksModules
       : [
-          { name: "Internal / Quiz", maxMarks: 20 },
-          { name: "Mid-Term Exam", maxMarks: 30 },
-          { name: "End-Term Exam", maxMarks: 50 },
-        ];
+        { name: "Internal / Quiz", maxMarks: 20 },
+        { name: "Mid-Term Exam", maxMarks: 30 },
+        { name: "End-Term Exam", maxMarks: 50 },
+      ];
 
     setEditFormData({
       _id: subject._id,
@@ -171,10 +168,9 @@ const ViewSubjects = ({ onNavigateToAdd }) => {
     setUpdating(true);
 
     try {
-      await axios.put(
-        `${API_BASE_URL}/api/subjects/${editFormData._id}`,
-        editFormData,
-        getAuthHeaders()
+      await api.put(
+        `/subjects/${editFormData._id}`,
+        editFormData
       );
 
       setShowEditModal(false);
@@ -193,7 +189,7 @@ const ViewSubjects = ({ onNavigateToAdd }) => {
     if (!window.confirm("Are you sure you want to delete this subject?")) return;
 
     try {
-      await axios.delete(`${API_BASE_URL}/api/subjects/${id}`, getAuthHeaders());
+      await api.delete(`/subjects/${id}`);
       fetchSubjects();
       notify("success", "Subject deleted successfully!");
     } catch (error) {
@@ -351,10 +347,10 @@ const ViewSubjects = ({ onNavigateToAdd }) => {
                       const modules = subject.marksModules?.length
                         ? subject.marksModules
                         : [
-                            { name: "Internal", maxMarks: 20 },
-                            { name: "Mid-Term", maxMarks: 30 },
-                            { name: "End-Term", maxMarks: 50 },
-                          ];
+                          { name: "Internal", maxMarks: 20 },
+                          { name: "Mid-Term", maxMarks: 30 },
+                          { name: "End-Term", maxMarks: 50 },
+                        ];
                       const totalMarks = modules.reduce(
                         (sum, m) => sum + (Number(m.maxMarks) || 0),
                         0

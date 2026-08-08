@@ -3,7 +3,7 @@ import { Container, Row, Col, Card, Table, Badge, InputGroup, Form, Button, Drop
 import { Search, Pencil, Trash2, Users, UserCheck, SlidersHorizontal, ArrowUpDown, ChevronLeft, ChevronRight, UserPlus, Filter } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 // Import centralized API calls
-import { getStudents, deleteStudent } from "../api/studentApi";
+import { getStudents, deleteStudent } from "../../api/studentApi";
 import "../Setings/SettingsTheme.css"; // Uses your global theme tokens
 
 const ViewStudents = () => {

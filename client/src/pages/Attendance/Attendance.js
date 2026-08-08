@@ -3,9 +3,9 @@ import { Container, Row, Col, Card, Form, Button, Table, Badge, InputGroup, Over
 import { User, BookOpen, CalendarDays, CheckCircle2, XCircle, Search, Pencil, Trash2, SlidersHorizontal, ArrowUpDown, ChevronLeft, ChevronRight, FileDown, Layers, Percent } from "lucide-react";
 
 // Centralized API Service Imports
-import { getAttendance, markAttendance, updateAttendance, deleteAttendance } from "../api/attendanceApi";
-import { getStudents } from "../api/studentApi";
-import { getSubjects } from "../api/subjectApi";
+import { getAttendance, markAttendance, updateAttendance, deleteAttendance } from "../../api/attendanceApi";
+import { getStudents } from "../../api/studentApi";
+import { getSubjects } from "../../api/subjectApi";
 
 import "../Setings/SettingsTheme.css"; // Uses your global theme tokens
 
