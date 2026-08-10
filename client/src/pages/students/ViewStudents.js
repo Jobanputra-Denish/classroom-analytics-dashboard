@@ -80,7 +80,7 @@ const ViewStudents = () => {
     }
 
     fetchStudents();
-  }, [navigate]);
+  }, [fetchStudents]);
 
   // ==============================
   // SEARCH STUDENTS
