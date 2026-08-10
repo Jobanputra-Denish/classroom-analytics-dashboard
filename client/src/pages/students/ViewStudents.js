@@ -1,357 +1,506 @@
-import React, { useEffect, useState, useMemo, useCallback } from "react";
-import { Container, Row, Col, Card, Table, Badge, InputGroup, Form, Button, Dropdown, OverlayTrigger, Tooltip } from "react-bootstrap";
-import { Search, Pencil, Trash2, Users, UserCheck, ArrowUpDown, ChevronLeft, ChevronRight, UserPlus, Filter } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import {
+  Container,
+  Row,
+  Col,
+  Card,
+  Table,
+  Button,
+  Alert,
+  Spinner,
+  Form,
+  InputGroup,
+  Badge,
+} from "react-bootstrap";
+
+import {
+  Search,
+  Pencil,
+  Trash,
+  Eye,
+  People,
+  ArrowClockwise,
+} from "react-bootstrap-icons";
+
 import { useNavigate } from "react-router-dom";
-// Import centralized API calls
-import { getStudents, deleteStudent } from "../../api/studentApi";
-import "../Setings/SettingsTheme.css"; // Uses your global theme tokens
+import api from "../../api/axiosConfig";
 
 const ViewStudents = () => {
-  const [students, setStudents] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [genderFilter, setGenderFilter] = useState("all");
-  const [sortField, setSortField] = useState("fullname");
-  const [sortDirection, setSortDirection] = useState("asc");
-
-  // PAGINATION STATE
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
-
   const navigate = useNavigate();
 
-  // Unified fetch function using API service
+  const [students, setStudents] = useState([]);
+  const [filteredStudents, setFilteredStudents] = useState([]);
+
+  const [search, setSearch] = useState("");
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  // ==============================
+  // GET STUDENTS
+  // ==============================
   const fetchStudents = async () => {
-    setLoading(true);
     try {
-      // Use centralized API service
-      const res = await getStudents();
-      setStudents(res.data);
+      setLoading(true);
+      setError("");
+
+      const response = await api.get("/students");
+
+      console.log("Students API Response:", response.data);
+
+      setStudents(response.data);
+      setFilteredStudents(response.data);
     } catch (error) {
       console.error("Error fetching students:", error);
-      // Optional: Add global error handling here (e.g., redirect to login on 401)
+
+      if (error.response?.status === 401) {
+        localStorage.removeItem("token");
+        navigate("/login");
+        return;
+      }
+
+      setError(
+        error.response?.data?.message ||
+          "Failed to load students. Please try again."
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this student record?")) return;
-    try {
-      // Use centralized API service
-      await deleteStudent(id);
-      fetchStudents(); // Refresh list after deletion
-    } catch (error) {
-      console.error(error);
-      alert(error.response?.data?.message || "Delete Failed");
-    }
-  };
+  // ==============================
+  // LOAD STUDENTS
+  // ==============================
+  useEffect(() => {
+    const token = localStorage.getItem("token");
 
-  const handleEdit = useCallback((student) => {
-    navigate("/students", { state: { editStudent: student } });
+    if (!token) {
+      navigate("/login");
+      return;
+    }
+
+    fetchStudents();
   }, [navigate]);
 
+  // ==============================
+  // SEARCH STUDENTS
+  // ==============================
   useEffect(() => {
-    fetchStudents();
-  }, []);
+    const query = search.toLowerCase().trim();
 
-  // ANALYTICAL STATS
-  const stats = useMemo(() => {
-    const total = students.length;
-    const male = students.filter((s) => s.gender === "male").length;
-    const female = students.filter((s) => s.gender === "female").length;
-    return { total, male, female };
-  }, [students]);
+    if (!query) {
+      setFilteredStudents(students);
+      return;
+    }
 
-  // SORTING & FILTERING ENGINE
-  const handleSort = (field) => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
-    } else {
-      setSortField(field);
-      setSortDirection("asc");
+    const filtered = students.filter((student) => {
+      return (
+        student.fullname?.toLowerCase().includes(query) ||
+        student.email?.toLowerCase().includes(query) ||
+        student.StudentId?.toLowerCase().includes(query) ||
+        student.className?.toLowerCase().includes(query) ||
+        student.section?.toLowerCase().includes(query)
+      );
+    });
+
+    setFilteredStudents(filtered);
+  }, [search, students]);
+
+  // ==============================
+  // DELETE STUDENT
+  // ==============================
+  const handleDelete = async (id) => {
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this student?"
+    );
+
+    if (!confirmDelete) {
+      return;
+    }
+
+    try {
+      await api.delete(`/students/${id}`);
+
+      // Remove deleted student from UI
+      setStudents((prev) =>
+        prev.filter((student) => student._id !== id)
+      );
+
+      alert("Student deleted successfully.");
+    } catch (error) {
+      console.error("Delete student error:", error);
+
+      if (error.response?.status === 401) {
+        localStorage.removeItem("token");
+        navigate("/login");
+        return;
+      }
+
+      alert(
+        error.response?.data?.message ||
+          "Failed to delete student."
+      );
     }
   };
 
-  const processedStudents = useMemo(() => {
-    let result = [...students];
+  // ==============================
+  // VIEW STUDENT
+  // ==============================
+  const handleView = (id) => {
+    navigate(`/students/${id}`);
+  };
 
-    if (searchTerm) {
-      const query = searchTerm.toLowerCase();
-      result = result.filter(
-        (student) =>
-          student.fullname?.toLowerCase().includes(query) ||
-          student.email?.toLowerCase().includes(query) ||
-          student.StudentId?.toLowerCase().includes(query) ||
-          student.className?.toLowerCase().includes(query)
-      );
-    }
-
-    if (genderFilter !== "all") {
-      result = result.filter((student) => student.gender === genderFilter);
-    }
-
-    result.sort((a, b) => {
-      let valA = a[sortField] || "";
-      let valB = b[sortField] || "";
-      return sortDirection === "asc"
-        ? valA.toString().localeCompare(valB.toString())
-        : valB.toString().localeCompare(valA.toString());
-    });
-
-    return result;
-  }, [students, searchTerm, genderFilter, sortField, sortDirection]);
-
-  // PAGINATION SLICE
-  const totalPages = Math.ceil(processedStudents.length / itemsPerPage) || 1;
-  const paginatedData = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage;
-    return processedStudents.slice(start, start + itemsPerPage);
-  }, [processedStudents, currentPage]);
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, genderFilter]);
+  // ==============================
+  // EDIT STUDENT
+  // ==============================
+  const handleEdit = (id) => {
+    navigate(`/students/edit/${id}`);
+  };
 
   return (
-    <div className="dashboard-content-area theme-settings-container">
-      <Container fluid className="px-4 py-4">
-        {/* HEADER BRANDING BANNER */}
-        <div className="d-flex justify-content-between align-items-center flex-wrap mb-4 gap-3">
-          <div>
-            <h3 className="fw-bold tracking-tight mb-1" style={{ color: "var(--text-dark)" }}>
-              Student Directory
-            </h3>
-            <p className="text-muted small mb-0">Overview, search, filter, and manage registered student records.</p>
-          </div>
-          <Button className="theme-btn-primary d-flex align-items-center gap-2" onClick={() => navigate("/students")}>
-            <UserPlus size={16} /> Enroll New Student
-          </Button>
-        </div>
+    <Container fluid className="py-4">
 
-        {/* METRICS ANALYTICS PANEL */}
-        <Row className="mb-4 g-3">
-          <Col xs={12} sm={4}>
-            <Card className="metric-card theme-card shadow-sm h-100 position-relative overflow-hidden">
-              <Card.Body className="d-flex align-items-center justify-content-between">
-                <div>
-                  <span className="text-muted fs-7 fw-medium text-uppercase tracking-wider d-block mb-1">Total Enrolled</span>
-                  <h3 className="fw-bold mb-0" style={{ color: "var(--text-dark)" }}>{stats.total}</h3>
-                </div>
-                <div className="metric-icon-wrapper" style={{ backgroundColor: "var(--primary-light)", color: "var(--primary-color)" }}>
-                  <Users size={22} />
-                </div>
-              </Card.Body>
-              <div className="card-decoration-line" style={{ backgroundColor: "var(--primary-color)" }}></div>
-            </Card>
-          </Col>
+      {/* ==============================
+          HEADER
+      ============================== */}
+      <Row className="mb-4 align-items-center">
 
-          <Col xs={12} sm={4}>
-            <Card className="metric-card theme-card shadow-sm h-100 position-relative overflow-hidden">
-              <Card.Body className="d-flex align-items-center justify-content-between">
-                <div>
-                  <span className="text-muted fs-7 fw-medium text-uppercase tracking-wider d-block mb-1">Male Students</span>
-                  <h3 className="fw-bold mb-0 text-primary">{stats.male}</h3>
-                </div>
-                <div className="metric-icon-wrapper bg-primary-subtle text-primary">
-                  <UserCheck size={22} />
-                </div>
-              </Card.Body>
-              <div className="card-decoration-line bg-primary"></div>
-            </Card>
-          </Col>
+        <Col md={6}>
+          <div className="d-flex align-items-center gap-3">
 
-          <Col xs={12} sm={4}>
-            <Card className="metric-card theme-card shadow-sm h-100 position-relative overflow-hidden">
-              <Card.Body className="d-flex align-items-center justify-content-between">
-                <div>
-                  <span className="text-muted fs-7 fw-medium text-uppercase tracking-wider d-block mb-1">Female Students</span>
-                  <h3 className="fw-bold mb-0 text-danger">{stats.female}</h3>
-                </div>
-                <div className="metric-icon-wrapper bg-danger-subtle text-danger">
-                  <UserCheck size={22} />
-                </div>
-              </Card.Body>
-              <div className="card-decoration-line bg-danger"></div>
-            </Card>
-          </Col>
-        </Row>
-
-        {/* MAIN DATA TABLE CARD */}
-        <Card className="theme-card shadow-sm runtime-panel-card overflow-hidden">
-          <Card.Header className="bg-transparent py-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-3">
-            <h5 className="mb-0 fw-bold" style={{ color: "var(--text-dark)" }}>Directory Registry</h5>
-            <div className="d-flex gap-2 align-items-center">
-              <Dropdown>
-                <Dropdown.Toggle variant="light" className="btn-sm border d-flex align-items-center gap-2 text-secondary">
-                  <Filter size={14} /> Gender: {genderFilter.toUpperCase()}
-                </Dropdown.Toggle>
-                <Dropdown.Menu align="end">
-                  <Dropdown.Item onClick={() => setGenderFilter("all")}>All Gender Types</Dropdown.Item>
-                  <Dropdown.Item onClick={() => setGenderFilter("male")}>Male Only</Dropdown.Item>
-                  <Dropdown.Item onClick={() => setGenderFilter("female")}>Female Only</Dropdown.Item>
-                </Dropdown.Menu>
-              </Dropdown>
+            <div
+              className="d-flex align-items-center justify-content-center rounded-4"
+              style={{
+                width: "55px",
+                height: "55px",
+                background: "#ede9fe",
+                color: "#6d28d9",
+              }}
+            >
+              <People size={28} />
             </div>
-          </Card.Header>
 
-          <Card.Body className="p-0">
-            {/* SEARCH TOOLBAR */}
-            <div className="p-3 bg-light-subtle border-bottom">
-              <InputGroup className="search-input-group shadow-none border rounded-3 overflow-hidden">
-                <InputGroup.Text className="bg-transparent border-0 pe-1">
-                  <Search size={16} className="text-muted" />
+            <div>
+              <h2 className="fw-bold mb-1">
+                Students
+              </h2>
+
+              <p className="text-muted mb-0">
+                Manage and view all student records
+              </p>
+            </div>
+
+          </div>
+        </Col>
+
+        <Col
+          md={6}
+          className="text-md-end mt-3 mt-md-0"
+        >
+          <Button
+            variant="primary"
+            className="fw-semibold px-4"
+            onClick={() => navigate("/students/add")}
+          >
+            + Add Student
+          </Button>
+        </Col>
+
+      </Row>
+
+
+      {/* ==============================
+          ERROR
+      ============================== */}
+      {error && (
+        <Alert
+          variant="danger"
+          className="rounded-4"
+        >
+          <div className="d-flex justify-content-between align-items-center">
+
+            <span>{error}</span>
+
+            <Button
+              variant="outline-danger"
+              size="sm"
+              onClick={fetchStudents}
+            >
+              <ArrowClockwise className="me-1" />
+              Retry
+            </Button>
+
+          </div>
+        </Alert>
+      )}
+
+
+      {/* ==============================
+          MAIN CARD
+      ============================== */}
+      <Card
+        className="border-0 shadow-sm"
+        style={{
+          borderRadius: "20px",
+        }}
+      >
+
+        <Card.Body className="p-4">
+
+          {/* ==============================
+              TOP BAR
+          ============================== */}
+          <Row className="align-items-center mb-4">
+
+            <Col md={6}>
+
+              <h5 className="fw-bold mb-1">
+                Student List
+              </h5>
+
+              <p className="text-muted mb-0">
+                Total Students:{" "}
+                <strong>
+                  {students.length}
+                </strong>
+              </p>
+
+            </Col>
+
+            <Col
+              md={6}
+              className="mt-3 mt-md-0"
+            >
+
+              <InputGroup>
+
+                <InputGroup.Text>
+                  <Search />
                 </InputGroup.Text>
+
                 <Form.Control
                   type="text"
-                  placeholder="Search by student name, enrollment ID, email or class..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="border-0 shadow-none ps-2 fs-7"
+                  placeholder="Search students..."
+                  value={search}
+                  onChange={(e) =>
+                    setSearch(e.target.value)
+                  }
                 />
+
               </InputGroup>
-            </div>
 
-            {/* DYNAMIC DATAGRID */}
-            <div className="table-responsive">
-              <Table hover className="align-middle mb-0 custom-datagrid">
-                <thead>
-                  <tr>
-                    <th style={{ width: "60px" }}>Idx</th>
-                    <th className="sortable-th" onClick={() => handleSort("fullname")}>
-                      Student Identity <ArrowUpDown size={12} className="ms-1 text-muted" />
-                    </th>
-                    <th className="sortable-th" onClick={() => handleSort("email")}>
-                      Email Address <ArrowUpDown size={12} className="ms-1 text-muted" />
-                    </th>
-                    <th className="sortable-th" onClick={() => handleSort("className")}>
-                      Class & Sec <ArrowUpDown size={12} className="ms-1 text-muted" />
-                    </th>
-                    <th className="sortable-th" onClick={() => handleSort("gender")}>
-                      Gender <ArrowUpDown size={12} className="ms-1 text-muted" />
-                    </th>
-                    <th>Contact</th>
-                    <th className="text-end pe-4" style={{ width: "110px" }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {loading ? (
-                    <tr>
-                      <td colSpan="7" className="text-center py-5">
-                        <div className="spinner-border spinner-border-sm me-2" style={{ color: "var(--primary-color)" }} role="status"></div>
-                        <span className="text-muted small">Loading directory records...</span>
-                      </td>
-                    </tr>
-                  ) : paginatedData.length > 0 ? (
-                    paginatedData.map((student, index) => (
-                      <tr key={student._id} className="datagrid-row-transition">
-                        <td className="text-muted fs-7 ps-3">{(currentPage - 1) * itemsPerPage + index + 1}</td>
-                        <td>
-                          <div className="fw-semibold fs-7" style={{ color: "var(--text-dark)" }}>{student.fullname}</div>
-                          <span className="badge-code-pill">{student.StudentId}</span>
-                        </td>
-                        <td className="text-secondary fs-7">{student.email}</td>
-                        <td>
-                          <span className="fs-7 fw-medium" style={{ color: "var(--text-dark)" }}>{student.className}</span>
-                          {student.section && <small className="text-muted ms-1">({student.section})</small>}
-                        </td>
-                        <td>
-                          {student.gender === "male" ? (
-                            <Badge className="badge-modern badge-modern-primary">Male</Badge>
-                          ) : (
-                            <Badge className="badge-modern badge-modern-danger">Female</Badge>
-                          )}
-                        </td>
-                        <td className="text-secondary fs-7">{student.phoneNumber || "—"}</td>
-                        <td className="text-end pe-3">
-                          <div className="d-flex justify-content-end gap-1">
-                            <OverlayTrigger placement="top" overlay={<Tooltip>Edit Record</Tooltip>}>
-                              <Button size="sm" variant="action-edit" onClick={() => handleEdit(student)} className="p-1.5 rounded-2">
-                                <Pencil size={14} />
-                              </Button>
-                            </OverlayTrigger>
-                            <OverlayTrigger placement="top" overlay={<Tooltip>Delete Student</Tooltip>}>
-                              <Button size="sm" variant="action-delete" onClick={() => handleDelete(student._id)} className="p-1.5 rounded-2">
-                                <Trash2 size={14} />
-                              </Button>
-                            </OverlayTrigger>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan="7" className="text-center text-muted py-5 fs-7">
-                        No students match the selected search criteria.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </Table>
-            </div>
+            </Col>
 
-            {/* PAGINATION FOOTER */}
-            <div className="p-3 border-top bg-light-subtle d-flex align-items-center justify-content-between flex-wrap gap-2">
-              <span className="text-muted fs-7">
-                Showing <strong>{Math.min(processedStudents.length, (currentPage - 1) * itemsPerPage + 1)}-{Math.min(processedStudents.length, currentPage * itemsPerPage)}</strong> of <strong>{processedStudents.length}</strong> entries
-              </span>
-              <div className="d-flex gap-1 align-items-center">
-                <Button variant="light" size="sm" className="btn-nav-arrow border" disabled={currentPage === 1} onClick={() => setCurrentPage((prev) => prev - 1)}>
-                  <ChevronLeft size={16} />
-                </Button>
-                {[...Array(totalPages)].map((_, idx) => (
-                  <Button
-                    key={idx}
-                    size="sm"
-                    className={`btn-page-number ${currentPage === idx + 1 ? "theme-btn-primary shadow-none" : "border text-secondary bg-white"}`}
-                    onClick={() => setCurrentPage(idx + 1)}
-                  >
-                    {idx + 1}
-                  </Button>
-                ))}
-                <Button variant="light" size="sm" className="btn-nav-arrow border" disabled={currentPage === totalPages} onClick={() => setCurrentPage((prev) => prev + 1)}>
-                  <ChevronRight size={16} />
-                </Button>
+          </Row>
+
+
+          {/* ==============================
+              LOADING
+          ============================== */}
+          {loading ? (
+
+            <div
+              className="d-flex justify-content-center align-items-center"
+              style={{
+                minHeight: "300px",
+              }}
+            >
+              <div className="text-center">
+
+                <Spinner
+                  animation="border"
+                  variant="primary"
+                />
+
+                <p className="text-muted mt-3 mb-0">
+                  Loading students...
+                </p>
+
               </div>
             </div>
-          </Card.Body>
-        </Card>
-      </Container>
 
-      {/* COMPACT STYLING RUNTIME OVERRIDES */}
-      <style>{`
-        .dashboard-content-area { color: var(--text-dark); }
-        .fs-7 { font-size: 0.875rem !important; }
-        .fs-8 { font-size: 0.75rem !important; }
+          ) : (
 
-        /* METRIC CARDS */
-        .metric-card { border-radius: 12px; transition: transform 0.2s ease, box-shadow 0.2s ease; }
-        .metric-card:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05) !important; }
-        .metric-icon-wrapper { width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
-        .card-decoration-line { position: absolute; bottom: 0; left: 0; right: 0; height: 3px; }
-        .runtime-panel-card { border-radius: 12px; }
+            /* ==============================
+               TABLE
+            ============================== */
 
-        /* DATAGRID TABLE */
-        .custom-datagrid th { background-color: var(--primary-light); color: var(--text-dark); font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; padding: 14px 16px; border-top: none; border-bottom: 2px solid var(--primary-border); }
-        .custom-datagrid td { padding: 14px 16px; border-bottom: 1px solid var(--primary-border); }
-        .datagrid-row-transition { transition: background-color 0.15s ease; }
-        .datagrid-row-transition:hover { background-color: var(--primary-light) !important; }
-        .sortable-th { cursor: pointer; user-select: none; }
+            <div className="table-responsive">
 
-        /* BADGES */
-        .badge-modern { padding: 6px 10px; font-weight: 500; font-size: 0.75rem; border-radius: 6px; }
-        .badge-modern-primary { background-color: #e0e7ff !important; color: #3730a3 !important; }
-        .badge-modern-danger { background-color: #fee2e2 !important; color: #991b1b !important; }
-        .badge-code-pill { background: var(--primary-light); color: var(--primary-color); padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-family: monospace; font-weight: 600; display: inline-block; margin-top: 2px; }
+              <Table
+                hover
+                responsive
+                className="align-middle mb-0"
+              >
 
-        /* BUTTONS & PAGINATION */
-        .btn-action-edit { background: none; border: none; color: #d97706; transition: background 0.2s; }
-        .btn-action-edit:hover { background: #fef3c7; color: #b45309; }
-        .btn-action-delete { background: none; border: none; color: #dc2626; transition: background 0.2s; }
-        .btn-action-delete:hover { background: #fee2e2; color: #b91c1c; }
-        .btn-page-number, .btn-nav-arrow { width: 32px; height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 0.875rem; }
-      `}</style>
-    </div>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Student ID</th>
+                    <th>Student Name</th>
+                    <th>Email</th>
+                    <th>Class</th>
+                    <th>Section</th>
+                    <th>Age</th>
+                    <th>Gender</th>
+                    <th>Phone</th>
+                    <th className="text-center">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody>
+
+                  {filteredStudents.length > 0 ? (
+
+                    filteredStudents.map(
+                      (student, index) => (
+
+                        <tr key={student._id}>
+
+                          <td>
+                            {index + 1}
+                          </td>
+
+                          <td>
+                            <Badge
+                              bg="light"
+                              text="dark"
+                              className="px-3 py-2"
+                            >
+                              {student.StudentId}
+                            </Badge>
+                          </td>
+
+                          <td>
+                            <div className="fw-semibold">
+                              {student.fullname}
+                            </div>
+                          </td>
+
+                          <td>
+                            {student.email}
+                          </td>
+
+                          <td>
+                            {student.className}
+                          </td>
+
+                          <td>
+                            {student.section}
+                          </td>
+
+                          <td>
+                            {student.age}
+                          </td>
+
+                          <td>
+                            {student.gender}
+                          </td>
+
+                          <td>
+                            {student.phoneNumber}
+                          </td>
+
+                          <td>
+
+                            <div className="d-flex justify-content-center gap-2">
+
+                              {/* VIEW */}
+                              <Button
+                                variant="outline-primary"
+                                size="sm"
+                                title="View Student"
+                                onClick={() =>
+                                  handleView(
+                                    student._id
+                                  )
+                                }
+                              >
+                                <Eye size={16} />
+                              </Button>
+
+                              {/* EDIT */}
+                              <Button
+                                variant="outline-warning"
+                                size="sm"
+                                title="Edit Student"
+                                onClick={() =>
+                                  handleEdit(
+                                    student._id
+                                  )
+                                }
+                              >
+                                <Pencil size={16} />
+                              </Button>
+
+                              {/* DELETE */}
+                              <Button
+                                variant="outline-danger"
+                                size="sm"
+                                title="Delete Student"
+                                onClick={() =>
+                                  handleDelete(
+                                    student._id
+                                  )
+                                }
+                              >
+                                <Trash size={16} />
+                              </Button>
+
+                            </div>
+
+                          </td>
+
+                        </tr>
+
+                      )
+                    )
+
+                  ) : (
+
+                    <tr>
+
+                      <td
+                        colSpan="10"
+                        className="text-center py-5"
+                      >
+
+                        <People
+                          size={45}
+                          className="text-muted mb-3"
+                        />
+
+                        <h5 className="fw-semibold">
+                          No Students Found
+                        </h5>
+
+                        <p className="text-muted mb-0">
+                          {search
+                            ? "No students match your search."
+                            : "There are no students available."}
+                        </p>
+
+                      </td>
+
+                    </tr>
+
+                  )}
+
+                </tbody>
+
+              </Table>
+
+            </div>
+
+          )}
+
+        </Card.Body>
+
+      </Card>
+
+    </Container>
   );
 };
 
