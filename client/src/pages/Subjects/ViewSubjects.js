@@ -87,7 +87,7 @@ const ViewSubjects = ({ onNavigateToAdd }) => {
     } finally {
       setLoading(false);
     }
-  },);
+  },[]);
 
   useEffect(() => {
     fetchSubjects();
