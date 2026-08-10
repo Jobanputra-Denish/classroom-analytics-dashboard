@@ -23,7 +23,7 @@ import {
 } from "react-bootstrap-icons";
 
 import { useNavigate } from "react-router-dom";
-import api from "../../api/axiosConfig";
+import api from "../../api/axios";
 
 const ViewStudents = () => {
   const navigate = useNavigate();
