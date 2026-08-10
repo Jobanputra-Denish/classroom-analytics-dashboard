@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState , useCallback} from "react";
 import {
   Container,
   Row,
@@ -39,35 +39,34 @@ const ViewStudents = () => {
   // ==============================
   // GET STUDENTS
   // ==============================
-  const fetchStudents = async () => {
-    try {
-      setLoading(true);
-      setError("");
+ const fetchStudents = useCallback(async () => {
+  try {
+    setLoading(true);
+    setError("");
 
-      const response = await api.get("/students");
+    const response = await api.get("/students");
 
-      console.log("Students API Response:", response.data);
+    console.log("Students API Response:", response.data);
 
-      setStudents(response.data);
-      setFilteredStudents(response.data);
-    } catch (error) {
-      console.error("Error fetching students:", error);
+    setStudents(response.data);
+    setFilteredStudents(response.data);
+  } catch (error) {
+    console.error("Error fetching students:", error);
 
-      if (error.response?.status === 401) {
-        localStorage.removeItem("token");
-        navigate("/login");
-        return;
-      }
-
-      setError(
-        error.response?.data?.message ||
-          "Failed to load students. Please try again."
-      );
-    } finally {
-      setLoading(false);
+    if (error.response?.status === 401) {
+      localStorage.removeItem("token");
+      navigate("/login");
+      return;
     }
-  };
 
+    setError(
+      error.response?.data?.message ||
+        "Failed to load students. Please try again."
+    );
+  } finally {
+    setLoading(false);
+  }
+}, [navigate]);
   // ==============================
   // LOAD STUDENTS
   // ==============================
@@ -80,7 +79,7 @@ const ViewStudents = () => {
     }
 
     fetchStudents();
-  }, [fetchStudents]);
+  }, [fetchStudents , navigate]);
 
   // ==============================
   // SEARCH STUDENTS
